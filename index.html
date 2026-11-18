@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>見積取りまとめ・値入れデモ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Inter:wght@500;700;800&display=swap">
+<style>
+/* 業務ツール：上に工程のタブ、下に作業面。赤は「AIの下書き・要確認」、黒は「人の確定」 */
+:root{
+  --bg:#F4F5F7; --surface:#FFFFFF; --soft:#EEF0F3; --line:#DDE1E7; --ink:#191C22; --sub:#5A6170; --mute:#8A909C;
+  --accent:#D6193A; --accent-soft:#FDECEF; --ok:#25804F; --ok-soft:#E6F3EB; --warn:#A86F00; --warn-soft:#FFF4D6; --dark:#22262E;
+  --f-body:"Noto Sans JP","Hiragino Sans","Yu Gothic",system-ui,sans-serif; --f-num:"Inter","Noto Sans JP",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#14161A; --surface:#1C1F25; --soft:#252932; --line:#333845; --ink:#ECEEF2; --sub:#A9AFBB; --mute:#7C8290;
+  --accent:#FF4D68; --accent-soft:#3A1C23; --ok:#5BC98A; --ok-soft:#173326; --warn:#E8B54A; --warn-soft:#3A2F14; --dark:#E6E8EC; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14161A; --surface:#1C1F25; --soft:#252932; --line:#333845; --ink:#ECEEF2; --sub:#A9AFBB; --mute:#7C8290;
+  --accent:#FF4D68; --accent-soft:#3A1C23; --ok:#5BC98A; --ok-soft:#173326; --warn:#E8B54A; --warn-soft:#3A2F14; --dark:#E6E8EC; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 40px}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;justify-content:space-between}
+h1{font-size:22px;font-weight:900;margin:0;letter-spacing:.01em;text-wrap:balance}
+.sub{color:var(--sub);font-size:13px;margin-top:2px}
+.fake{display:inline-flex;gap:6px;align-items:center;font-size:12px;font-weight:700;color:var(--warn);background:var(--warn-soft);border-radius:99px;padding:4px 12px}
+nav.steps{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+nav.steps button{flex:none;display:flex;gap:8px;align-items:center;border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  border-radius:10px;padding:9px 14px;font:700 14px var(--f-body);cursor:pointer}
+nav.steps button .n{width:22px;height:22px;border-radius:50%;background:var(--soft);color:var(--sub);display:grid;place-items:center;font:800 12px var(--f-num)}
+nav.steps button[aria-selected="true"]{border-color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent)}
+nav.steps button[aria-selected="true"] .n{background:var(--accent);color:#fff}
+nav.steps button .who{font-size:11px;font-weight:700;color:var(--mute)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.ph{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+.ph h2{font-size:16px;font-weight:900;margin:0}
+.ph p{margin:0;color:var(--sub);font-size:13px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.qcard{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.qhead{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.qhead b{font-size:15px}
+.file{font-size:12px;color:var(--mute)}
+.chip{display:inline-flex;align-items:center;gap:4px;border-radius:99px;padding:2px 9px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.c-ai{background:var(--accent-soft);color:var(--accent)} .c-ok{background:var(--ok-soft);color:var(--ok)} .c-warn{background:var(--warn-soft);color:var(--warn)}
+.c-mute{background:var(--soft);color:var(--sub)} .c-red{background:var(--accent);color:#fff} .c-dark{background:var(--dark);color:var(--surface)}
+.tw{overflow-x:auto;min-width:0}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-size:11.5px;font-weight:700;color:var(--mute);text-align:left;padding:6px 8px;border-bottom:1.5px solid var(--ink);white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.n,th.n{text-align:right;font-family:var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.s{color:var(--sub);font-size:12px;white-space:nowrap}
+tr.sel td{background:var(--accent-soft)}
+tr.click{cursor:pointer} tr.click:hover td{background:var(--soft)}
+tr.sel.click:hover td{background:var(--accent-soft)}
+.lo{color:var(--accent);font-weight:800}
+.log{display:flex;flex-wrap:wrap;gap:6px}
+.log span{font-size:12px;background:var(--soft);border-radius:6px;padding:3px 8px;color:var(--sub)}
+.log b{color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.kpi span{display:block;font-size:11.5px;font-weight:700;color:var(--mute)}
+.kpi b{font:800 20px var(--f-num);font-variant-numeric:tabular-nums}
+.kpi.r{border-color:var(--accent)} .kpi.r b{color:var(--accent)}
+.pick{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pick label{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;font-weight:700}
+.pick input{accent-color:var(--dark)}
+.note{font-size:12px;color:var(--mute)}
+.callout{border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;padding:9px 12px;font-size:13px}
+.callout.k{border-left-color:var(--dark);background:var(--soft)}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:12px;align-items:start}
+@media (max-width:980px){.split{grid-template-columns:1fr}}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.rules label{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:700;color:var(--sub)}
+.rules input{width:100%;font:700 14px var(--f-num);padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
+.cand{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:3px}
+.cand.top{border:2px solid var(--accent)}
+.cand.x{opacity:.62;border-style:dashed}
+.cand .t{display:flex;justify-content:space-between;gap:8px;font-weight:700;font-size:13px}
+.cand .m{font-size:12px;color:var(--sub)}
+.bar{height:5px;border-radius:3px;background:var(--soft);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.drawer{display:flex;flex-direction:column;gap:8px;position:sticky;top:env(safe-area-inset-top,0px)}
+.q{font-size:13px;background:var(--soft);border-radius:8px;padding:8px 10px}
+.q b{font-size:11.5px;color:var(--mute);display:block}
+input.man{width:96px;font:700 13px var(--f-num);padding:4px 6px;border:1.5px dashed var(--accent);border-radius:6px;background:var(--surface);color:var(--ink);text-align:right}
+.btn{border:0;border-radius:8px;padding:9px 16px;font:700 14px var(--f-body);cursor:pointer;background:var(--dark);color:var(--surface)}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:var(--soft);color:var(--ink)}
+pre.csv{margin:0;background:var(--soft);border-radius:8px;padding:12px;font:500 12.5px/1.6 ui-monospace,Menlo,monospace;overflow-x:auto;white-space:pre}
+.mode{display:flex;gap:6px;flex-wrap:wrap}
+.mode button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:99px;padding:5px 12px;font:700 12.5px var(--f-body);cursor:pointer}
+.mode button[aria-pressed="true"]{background:var(--dark);color:var(--surface);border-color:var(--dark)}
+.metric{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.mc{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:4px}
+.mc b{font:800 28px var(--f-num);font-variant-numeric:tabular-nums}
+.mc .vs{font-size:12px;color:var(--sub)}
+.mc.r b{color:var(--accent)}
+footer{font-size:12px;color:var(--mute)}
+.ck{display:flex;gap:6px;align-items:center;font-size:12px;font-weight:700;white-space:nowrap}
+.ck input{accent-color:var(--dark);width:16px;height:16px}
+@media (prefers-reduced-motion:no-preference){.flash{animation:fl .6s ease-out}@keyframes fl{from{background:var(--accent-soft)}to{background:transparent}}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>見積取りまとめ・値入れデモ</h1>
+      <div class="sub">食品工場の改修（架空の案件）を例に、比較表 → 値入れ → 取込データまでを動かします</div>
+    </div>
+    <span class="fake">会社・業者・単価・物価資料の値はすべて架空です</span>
+  </header>
+
+  <nav class="steps" role="tablist" id="steps"></nav>
+  <main id="view"></main>
+  <footer>商談用の構想デモです。見積書の読み取りは結果の例を表示しています。検索・照合・値入れの計算・答え合わせは、この画面の中で実際に計算しています。</footer>
+</div>
+
+<script>
+/* ===== 架空データ ===== */
+const KOSHU_MAP={ "仮設工事":"仮設","共通仮設":"仮設","仮設":"仮設", "内装工事":"内装","パネル工事":"内装","内装":"内装",
+  "床工事":"床","塗床工事":"床","床仕上":"床", "建具工事":"建具","建具":"建具", "排水設備工事":"排水設備","排水設備":"排水設備","設備（排水）":"排水設備",
+  "諸経費":"諸経費","現場経費":"諸経費" };
+const KOSHU_ORDER=["仮設","内装","床","建具","排水設備","諸経費"];
+const L=(key,koshu,name,qty,unit,price,note="")=>({key,koshu,name,qty,unit,price,note});
+const QUOTES={
+ A:{name:"A社",file:"A社_見積書_食品工場改修.pdf",fmt:"PDF",lines:[
+  L("ashiba","仮設工事","仮設足場 内部",120,"㎡",1500), L("yojo","仮設工事","養生・清掃",1,"式",350000),
+  L("wall","内装工事","断熱パネル壁 t100",320,"㎡",9800), L("ceil","内装工事","断熱パネル天井 t75",180,"㎡",9300),
+  L("floor","床工事","防塵塗床 エポキシ厚膜 3mm",540,"㎡",6200), L("door","建具工事","断熱扉 片開き W1200×H2100",4,"か所",480000),
+  L("grating","排水設備工事","排水溝 SUSグレーチング W300",60,"m",38000), L("grease","排水設備工事","グリーストラップ SUS製 1,000L",1,"台",1150000),
+  L("keihi","諸経費","諸経費",1,"式",1800000,"工事費の10%")]},
+ B:{name:"B社",file:"B社_御見積書.xlsx",fmt:"Excel",lines:[
+  L("ashiba","共通仮設","内部足場",120,"㎡",1450), L("yojo","共通仮設","養生清掃費",1,"式",320000),
+  L("wall","パネル工事","断熱サンドイッチパネル(壁) 厚100",320,"㎡",9500), L("ceil","パネル工事","断熱サンドイッチパネル(天井) 厚75",180,"㎡",9100),
+  L("floor","塗床工事","塗床 エポキシ樹脂厚膜型 t3",540,"㎡",6500), L("door","建具","断熱ドア W1200 H2100",4,"か所",512000),
+  L("grating","排水設備","ステンレスグレーチング 溝幅300",60,"m",40000), L("grease","排水設備","グリース阻集器 ステンレス 1000L",1,"台",1200000),
+  L("keihi","現場経費","現場経費",1,"式",1650000,"一式（内訳なし）")]},
+ C:{name:"C社",file:"C社_見積.pdf",fmt:"PDF（スキャン）",lines:[
+  L("ashiba","仮設","足場（内部）",120,"㎡",1600), L("yojo","仮設","清掃・養生",1,"式",380000),
+  L("wall","内装","壁パネル 断熱 100mm",320,"㎡",10200), L("ceil","内装","天井パネル 断熱 75mm",180,"㎡",9600),
+  L("floor","床仕上","エポキシ塗床 厚膜 3.0mm",540,"㎡",6600), L("door","建具","断熱扉",4,"か所",null,"別途工事"),
+  L("grating","設備（排水）","グレーチング SUS 300",60,"m",38500), L("grease","設備（排水）","グリストラップ SUS",1,"台",1180000),
+  L("keihi","諸経費","諸経費",1,"式",2100000,"工事費の12%")]}
+};
+const ELEC={name:"電気設備の見積（CSV）",file:"電気設備見積_出力.csv",lines:[
+  L("led","電気","防湿形LED照明 40W相当",85,"台",24000), L("cv","電気","ケーブル CV 5.5sq-3C",240,"m",950), L("panel","電気","分電盤 改造",1,"式",380000)]};
+const SRC="物価資料（架空）2026年11月号 名古屋";
+const BUKKA=[
+ {id:"P01",name:"断熱サンドイッチパネル 壁 厚75mm",unit:"㎡",price:9600,page:212},
+ {id:"P02",name:"断熱サンドイッチパネル 壁 厚100mm",unit:"㎡",price:11500,page:212},
+ {id:"P03",name:"断熱サンドイッチパネル 天井 厚75mm",unit:"㎡",price:10200,page:213},
+ {id:"P04",name:"断熱サンドイッチパネル 天井 厚100mm",unit:"㎡",price:12100,page:213},
+ {id:"P05",name:"塗床 エポキシ樹脂 厚膜型 厚3mm",unit:"㎡",price:7000,page:248},
+ {id:"P06",name:"塗床 エポキシ樹脂 薄膜型 厚0.3mm",unit:"㎡",price:2900,page:248},
+ {id:"P07",name:"塗床 水性硬質ウレタン 厚4mm",unit:"㎡",price:8800,page:249},
+ {id:"P08",name:"グレーチング ステンレス 溝幅300",unit:"m",price:36500,page:301},
+ {id:"P09",name:"グレーチング ステンレス 溝幅200",unit:"m",price:28400,page:301},
+ {id:"P10",name:"グレーチング 鋼製 溝幅300",unit:"m",price:14800,page:300},
+ {id:"P11",name:"LED照明器具 防湿・防雨形 40W相当",unit:"台",price:26800,page:388},
+ {id:"P12",name:"LED照明器具 一般形 40W相当",unit:"台",price:15500,page:387},
+ {id:"P13",name:"ケーブル CV 5.5sq 3心",unit:"m",price:1180,page:402},
+ {id:"P14",name:"ケーブル CV 8sq 3心",unit:"m",price:1560,page:402},
+ {id:"P15",name:"仮設足場 内部 枠組",unit:"㎡",price:1650,page:105},
+ {id:"P16",name:"仮設足場 外部 枠組",unit:"㎡",price:2100,page:105}];
+const PAST=[
+ {id:"H1",name:"断熱扉 片開き W1200×H2100",price:552000,job:"2025年 K食品 第2工場 改修",satei:"指摘なし"},
+ {id:"H2",name:"グリーストラップ SUS 1000L",price:1380000,job:"2025年 M製パン 工場増築",satei:"「メーカー見積書の添付を」と指摘"},
+ {id:"H3",name:"断熱パネル 壁 厚100mm",price:11200,job:"2025年 K食品 第2工場 改修",satei:"指摘なし"},
+ {id:"H4",name:"分電盤 改造",price:420000,job:"2024年 T物流 倉庫改修",satei:"「内訳の提出を」と指摘"}];
+const GOLD={ashiba:"P15",wall:"P02",ceil:"P03",floor:"P05",grating:"P08",led:"P11",cv:"P13",yojo:null,door:null,grease:null,panel:null};
+const RATE0={"仮設":10,"内装":15,"床":12,"建具":15,"排水設備":12,"電気":10};
+
+/* ===== 検索（言葉＋規格の条件） ===== */
+function norm(s){
+  s=s.normalize("NFKC").replace(/[()（）]/g," ");
+  const R=[[/サンドイッチ/g,""],[/ステンレス/g,"SUS"],[/グリース阻集器|グリストラップ/g,"グリーストラップ"],[/防塵塗床|エポキシ塗床/g,"塗床 エポキシ"],
+   [/エポキシ樹脂/g,"エポキシ"],[/厚膜型/g,"厚膜"],[/ドア/g,"扉"],[/防湿・防雨形|防湿形/g,"防湿"],[/LED照明器具/g,"LED照明"],[/内部足場/g,"足場 内部"],[/仮設足場/g,"足場"],
+   [/壁パネル/g,"パネル 壁"],[/天井パネル/g,"パネル 天井"],[/断熱パネル壁/g,"断熱パネル 壁"],[/断熱パネル天井/g,"断熱パネル 天井"],[/器具/g,""]];
+  for(const [a,b] of R) s=s.replace(a,b);
+  return s.replace(/\s+/g," ").trim();
+}
+function attrs(raw){
+  const s=norm(raw), a={};
+  let m=s.match(/(?:\bt|厚)\s*(\d+(?:\.\d+)?)/)||s.match(/(\d+(?:\.\d+)?)\s*mm/); if(m) a["厚さ"]=parseFloat(m[1]);
+  m=s.match(/(?:W|溝幅)\s*(\d{3})(?!\s*[×xH])/); if(m && !/×|H\d/.test(s)) a["溝幅"]=+m[1];
+  if(/グレーチング/.test(s) && !a["溝幅"]){m=s.match(/\b(\d{3})\b/); if(m) a["溝幅"]=+m[1];}
+  if(/SUS/.test(s)) a["材質"]="SUS"; else if(/鋼製/.test(s)) a["材質"]="鋼製";
+  if(/壁/.test(s)) a["部位"]="壁"; else if(/天井/.test(s)) a["部位"]="天井";
+  m=s.match(/(\d+(?:\.\d+)?)\s*sq/); if(m) a["太さ"]=parseFloat(m[1]);
+  m=s.match(/(\d)\s*心|-(\d)C/); if(m) a["心数"]=+(m[1]||m[2]);
+  if(/防湿/.test(s)) a["種別"]="防湿"; else if(/一般形/.test(s)) a["種別"]="一般";
+  if(/内部/.test(s)) a["場所"]="内部"; else if(/外部/.test(s)) a["場所"]="外部";
+  if(/厚膜/.test(s)) a["膜"]="厚膜"; else if(/薄膜/.test(s)) a["膜"]="薄膜";
+  if(/ウレタン/.test(s)) a["樹脂"]="ウレタン"; else if(/エポキシ/.test(s)) a["樹脂"]="エポキシ";
+  return a;
+}
+function grams(s,noDigits){ s=norm(s).replace(/\s/g,""); if(noDigits) s=s.replace(/[0-9.]/g,"");
+  const g=new Set(); for(let i=0;i<s.length-1;i++) g.add(s.slice(i,i+2)); return g; }
+function dice(a,b){ if(!a.size||!b.size) return 0; let n=0; a.forEach(x=>{if(b.has(x))n++}); return 2*n/(a.size+b.size); }
+const TH=0.32;
+/* mode: "hybrid"（言葉＋規格の条件）／ "meaning"（数値を区別しにくい検索の再現） */
+function search(text,mode,db){
+  const qa=attrs(text), qg=grams(text,mode==="meaning");
+  return db.map(c=>{
+    const ca=attrs(c.name), sc=dice(qg,grams(c.name,mode==="meaning"));
+    const conflicts=Object.keys(qa).filter(k=>k in ca && qa[k]!==ca[k]);
+    return {c,score:sc,conflicts,excluded:mode==="hybrid"&&conflicts.length>0};
+  }).sort((x,y)=>(x.excluded-y.excluded)||(y.score-x.score)||x.c.id.localeCompare(y.c.id));
+}
+function bestHit(text,mode,db){ const r=search(text,mode,db); const top=r.find(x=>!x.excluded); return (top&&top.score>=TH)?top:null; }
+
+/* ===== 値入れのルール ===== */
+const round=(v)=>v>=10000?Math.round(v/100)*100:Math.round(v/10)*10;
+function priceLine(line,rate,cap){
+  const kos=KOSHU_MAP[line.koshu]||line.koshu, r=(rate[kos]??10)/100;
+  const hit=bestHit(line.name,"hybrid",BUKKA), past=bestHit(line.name,"hybrid",PAST);
+  const out={line,kos,r,hit,past,proposal:null,state:"",basis:"",origin:null,note:""};
+  if(line.price==null){out.state="対象外";out.basis="見積に含まれていません（別途工事）";return out;}
+  const marked=round(line.price*(1+r));
+  if(hit){
+    const lim=round(hit.c.price*cap); out.origin={kind:"物価資料",value:hit.c.price,id:hit.c.id};
+    out.basis=`${SRC} p.${hit.c.page}「${hit.c.name}」${hit.c.price.toLocaleString()}円`;
+    if(line.price>lim){out.proposal=line.price;out.state="価格調整の候補";
+      out.note=`業者見積が上限 ${lim.toLocaleString()}円 を超過。業者への価格調整の目安 ${round(lim/(1+r)).toLocaleString()}円`;}
+    else if(marked>lim){out.proposal=lim;out.state="照合済み（上限を適用）";}
+    else {out.proposal=marked;out.state="照合済み";}
+  } else if(past){
+    out.proposal=past.c.price;out.state="仮置き・要確認";out.origin={kind:"過去の提出",value:past.c.price,id:past.c.id};
+    out.basis=`過去の提出単価：${past.c.job}「${past.c.name}」${past.c.price.toLocaleString()}円`;
+    if(past.c.satei!=="指摘なし") out.note=`前回の査定で${past.c.satei}`;
+  } else {out.state="未算出";out.basis="物価資料・過去の提出に該当なし";}
+  return out;
+}
+
+/* ===== 画面の状態 ===== */
+const S={step:0,pick:"A",rate:{...RATE0},cap:100,sel:null,checks:{},manual:{},evalMode:"hybrid",tryName:"断熱パネル t100 壁用 両面カラー鋼板",tryKoshu:"内装",tryPrice:9800};
+const yen=v=>v==null?"—":v.toLocaleString();
+const STEPS=[["見積書の取込","AI：読み取り"],["比較表","AI：下書き／人：選定"],["値入れ","AI：検索・計算／人：確認"],["取込データの出力","人：確定"],["答え合わせ","RAGの性能"],["自由に試す","入力した行で検索・計算"]];
+const EX=[["断熱パネル t100 壁用 両面カラー鋼板","内装",9800],["天井パネル 厚さ50","内装",9400],["塗床 水性硬質ウレタン 厚6mm","床",6200],["ステンレスグレーチング 溝幅200 SUS304","排水設備",38000],["CVケーブル 5.5sq 3心","電気",1150],["防虫カーテン 幅900","建具",12000]];
+function nav(){
+  document.getElementById("steps").innerHTML=STEPS.map(([t,w],i)=>
+    `<button role="tab" aria-selected="${S.step===i}" data-step="${i}"><span class="n">${i+1}</span><span>${t}<br><span class="who">${w}</span></span></button>`).join("");
+  document.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>{S.step=+b.dataset.step;render()});
+}
+function qTable(lines){
+  return `<div class="tw"><table><tr><th>工種（見積書の表記）</th><th>名称・規格</th><th class="n">数量</th><th class="n">単価</th></tr>`+
+   lines.map(l=>`<tr><td class="s">${l.koshu}</td><td>${l.name}${l.note?` <span class="chip c-warn">${l.note}</span>`:""}</td><td class="n">${l.qty}${l.unit}</td><td class="n">${l.price==null?"別途":yen(l.price)}</td></tr>`).join("")+`</table></div>`;
+}
+function v0(){
+  const cards=Object.entries(QUOTES).map(([k,q])=>`<div class="qcard"><div class="qhead"><b>${q.name}の見積書</b><span class="chip c-ai">読み取り済み</span></div>
+    <div class="file">${q.file}｜${q.fmt}｜${q.lines.length}行</div>${qTable(q.lines)}</div>`).join("");
+  const e=`<div class="qcard"><div class="qhead"><b>${ELEC.name}</b><span class="chip c-mute">CSVをそのまま取込</span></div><div class="file">${ELEC.file}｜電気設備の見積ソフトの出力</div>${qTable(ELEC.lines)}</div>`;
+  return `<section class="panel"><div class="ph"><h2>① 見積書の取込</h2><p>様式の違う3社の見積書と、電気設備の見積ソフトのCSVを取り込みます</p></div>
+   <div class="grid2">${cards}${e}</div>
+   <div class="callout k" style="margin-top:12px">見積書（PDF・Excel・スキャン）の文字を表に起こす所はAIの読み取りです。ここでは読み取り結果の例を表示しています。</div></section>`;
+}
+function totals(){
+  const t={};for(const [k,q] of Object.entries(QUOTES)){t[k]={sum:0,byK:{},besshi:[]};
+    for(const l of q.lines){const kk=KOSHU_MAP[l.koshu];const v=l.price==null?null:l.price*l.qty;
+      if(v==null){t[k].besshi.push(kk);t[k].byK[kk]=t[k].byK[kk]??null;} else {t[k].byK[kk]=(t[k].byK[kk]||0)+v;t[k].sum+=v;}}}
+  return t;
+}
+function v1(){
+  const t=totals(), ks=Object.keys(QUOTES);
+  const maps=[];for(const [k,q] of Object.entries(QUOTES)){const seen=new Set();for(const l of q.lines){const kk=KOSHU_MAP[l.koshu];if(l.koshu!==kk&&!seen.has(l.koshu)){seen.add(l.koshu);maps.push(`${q.name}「${l.koshu}」→ <b>${kk}</b>`)}}}
+  const rows=KOSHU_ORDER.map(kk=>{const vals=ks.map(k=>t[k].byK[kk]);const nums=vals.filter(v=>v!=null);
+    const mn=kk==="諸経費"?null:Math.min(...nums); const besshi=vals.some(v=>v==null);
+    const diff=kk==="諸経費"?"算出方法が各社で異なる（10%／内訳なし／12%）":besshi?`${ks.filter(k=>t[k].byK[kk]==null).map(k=>QUOTES[k].name).join("・")}は別途工事の扱い`:"同じ範囲";
+    return `<tr><td><b>${kk}</b></td>${vals.map(v=>`<td class="n ${v!=null&&v===mn?"lo":""}">${v==null?"別途":yen(v)}</td>`).join("")}
+     <td class="s">${diff}</td><td>${(besshi||kk==="諸経費")?'<span class="chip c-warn">条件差あり</span>':'<span class="chip c-mute">比較可</span>'}</td></tr>`}).join("");
+  const same=ks.filter(k=>!t[k].besshi.length).sort((a,b)=>t[a].sum-t[b].sum);
+  const cheapest=ks.slice().sort((a,b)=>t[a].sum-t[b].sum)[0];
+  return `<section class="panel"><div class="ph"><h2>② 比較表の下書き</h2><p>工種の名前をそろえ、条件の違いに印を付けます。発注先の選定は御社が行います</p></div>
+   <div class="log" style="margin-bottom:10px"><span class="chip c-ai">工種の名寄せ ${maps.length}件</span>${maps.map(m=>`<span>${m}</span>`).join("")}</div>
+   <div class="tw"><table><tr><th>工種</th>${ks.map(k=>`<th class="n">${QUOTES[k].name}</th>`).join("")}<th>条件の違い</th><th>状態</th></tr>${rows}
+   <tr><td><b>合計</b></td>${ks.map(k=>`<td class="n"><b>${yen(t[k].sum)}</b>${t[k].besshi.length?'<br><span class="chip c-warn">建具を含まず</span>':""}</td>`).join("")}<td></td><td></td></tr></table></div>
+   <div class="callout" style="margin:12px 0">合計が一番安いのは${QUOTES[cheapest].name}ですが、${t[cheapest].besshi.length?`${t[cheapest].besshi.join("・")}が別途のため同じ条件の比較ではありません。同じ条件で最安は <b>${QUOTES[same[0]].name}</b> です（AIの下書き）。`:"条件差はありません。"}</div>
+   <div class="pick"><span class="chip c-dark">発注先の選定（御社）</span>${ks.map(k=>`<label><input type="radio" name="pick" value="${k}" ${S.pick===k?"checked":""}>${QUOTES[k].name}</label>`).join("")}
+   <button class="btn" id="go2">この発注先で値入れへ</button></div></section>`;
+}
+function linesForPricing(){return [...QUOTES[S.pick].lines.filter(l=>KOSHU_MAP[l.koshu]!=="諸経費"),...ELEC.lines];}
+function priced(){const cap=S.cap/100;return linesForPricing().map(l=>{const p=priceLine(l,S.rate,cap);const id=S.pick+":"+l.key;p.id=id;
+  if(p.state==="未算出"&&S.manual[id]) {p.proposal=S.manual[id];p.state="人が入力";p.basis="担当者が入力";p.origin={kind:"人",value:S.manual[id]};}
+  return p;});}
+const needs=p=>p.state!=="照合済み"&&p.state!=="照合済み（上限を適用）"&&p.state!=="対象外";
+function stChip(p){const m={"照合済み":"c-mute","照合済み（上限を適用）":"c-mute","価格調整の候補":"c-warn","仮置き・要確認":"c-warn","未算出":"c-red","人が入力":"c-dark","対象外":"c-mute"};
+  return `<span class="chip ${m[p.state]}">${p.state}</span>`;}
+function v2(){
+  const P=priced(); if(!S.sel||!P.find(p=>p.id===S.sel)) S.sel=P.find(p=>p.line.key==="wall")?.id||P[0].id;
+  const base=P.filter(p=>p.proposal!=null), vend=base.reduce((s,p)=>s+p.line.price*p.line.qty,0), sub=base.reduce((s,p)=>s+p.proposal*p.line.qty,0);
+  const k={ok:P.filter(p=>p.state.startsWith("照合済み")).length,wait:P.filter(p=>needs(p)&&!S.checks[p.id]).length,un:P.filter(p=>p.state==="未算出").length};
+  const kp=`<div class="kpis"><div class="kpi"><span>値入れの対象</span><b>${P.length}行</b></div><div class="kpi"><span>物価資料と照合済み</span><b>${k.ok}行</b></div>
+   <div class="kpi r"><span>人の確認待ち</span><b>${k.wait}行</b></div><div class="kpi"><span>業者見積（算出済み${base.length}行）</span><b>${yen(vend)}</b></div>
+   <div class="kpi"><span>提出金額の参考小計</span><b>${yen(sub)}</b></div><div class="kpi"><span>値入れ率（参考）</span><b>${vend?(sub/vend*100).toFixed(1):"—"}%</b></div></div>`;
+  const rows=P.map(p=>{const l=p.line;const need=needs(p);
+    const val=p.state==="未算出"||p.state==="人が入力"?`<input class="man" inputmode="numeric" data-man="${p.id}" value="${S.manual[p.id]||""}" placeholder="単価を入力">`:yen(p.proposal);
+    return `<tr class="click ${S.sel===p.id?"sel":""}" data-row="${p.id}"><td class="s">${p.kos}</td><td>${l.name}</td><td class="n">${l.qty}${l.unit}</td><td class="n">${l.price==null?"別途":yen(l.price)}</td>
+     <td class="n">${p.hit?yen(p.hit.c.price):"—"}</td><td class="n"><b>${val}</b></td><td>${stChip(p)}</td>
+     <td>${need&&p.state!=="対象外"?`<label class="ck"><input type="checkbox" data-ck="${p.id}" ${S.checks[p.id]?"checked":""} ${p.state==="未算出"?"disabled":""}>確認</label>`:'<span class="note">—</span>'}</td></tr>`}).join("");
+  const rate=Object.keys(RATE0).map(k=>`<label>${k}（上乗せ%）<input type="number" min="0" max="50" step="1" id="r-${k}" data-rate="${k}" value="${S.rate[k]}"></label>`).join("")+
+    `<label>上限（物価資料の%）<input type="number" min="80" max="120" step="1" id="r-cap" data-cap="1" value="${S.cap}"></label>`;
+  return `<div class="split"><div style="display:flex;flex-direction:column;gap:12px;min-width:0">${kp}
+   <section class="panel"><div class="ph"><h2>③ 値入れの下書き（${QUOTES[S.pick].name}＋電気設備）</h2><p>行を押すと、右に検索の中身と根拠が出ます</p></div>
+   <div class="tw"><table><tr><th>工種</th><th>名称・規格（見積書の表記）</th><th class="n">数量</th><th class="n">業者見積の単価</th><th class="n">物価資料の単価</th><th class="n">提出単価案</th><th>状態</th><th>人の確認</th></tr>${rows}</table></div></section>
+   <section class="panel"><div class="ph"><h2>値入れの考え方（御社のルール）</h2><p>数字を変えると、提出単価案がすぐ計算し直されます。AIは単価を作らず、この計算式に検索した値を渡します</p></div>
+   <div class="rules">${rate}</div><p class="note" style="margin:8px 0 0">提出単価案 ＝ 業者見積の単価 ×（1＋上乗せ率）。ただし物価資料の単価 × 上限% を超えない。物価資料に無い品目は過去の提出単価を仮置き、どちらも無ければ未算出。</p></section></div>
+   <aside class="panel drawer" id="drawer">${drawer(P.find(p=>p.id===S.sel))}</aside></div>`;
+}
+function candHtml(r,isTop){const c=r.c;const pct=Math.round(r.score*100);
+  return `<div class="cand ${isTop?"top":""} ${r.excluded?"x":""}"><div class="t"><span>${c.id}　${c.name}</span><span class="n">${c.price!=null?yen(c.price):""}</span></div>
+   <div class="bar"><i style="width:${pct}%"></i></div><div class="m">言葉の一致 ${pct}%　${r.excluded?`<span class="chip c-red">除外：${r.conflicts.map(k=>"規格（"+k+"）が不一致").join("・")}</span>`:(isTop?'<span class="chip c-ai">採用した根拠</span>':"")}</div></div>`;}
+function drawer(p){
+  if(!p) return "";
+  const qa=attrs(p.line.name);
+  const all=search(p.line.name,"hybrid",BUKKA), top=p.hit?p.hit.c.id:null;
+  const r=[...all.filter(x=>!x.excluded).slice(0,3),...all.filter(x=>x.excluded).sort((a,b)=>b.score-a.score).slice(0,2)];
+  const pr=search(p.line.name,"hybrid",PAST).filter(x=>x.score>=TH&&!x.excluded).slice(0,2);
+  return `<div class="ph" style="margin:0"><h2>検索の中身</h2><span class="chip c-ai">RAG</span></div>
+   <div class="q"><b>見積書の行（検索の元）</b>${p.line.name}<br><span class="note">読み取った規格：${Object.entries(qa).map(([k,v])=>k+"="+v).join("／")||"なし"}</span></div>
+   <div class="note" style="font-weight:700">物価資料の候補（上位3件＋規格で除外した候補）</div>${r.map(x=>candHtml(x,x.c.id===top)).join("")}
+   <div class="note" style="font-weight:700">過去の提出・査定</div>${pr.length?pr.map(x=>`<div class="cand ${!top?"top":""}"><div class="t"><span>${x.c.name}</span><span class="n">${yen(x.c.price)}</span></div><div class="m">${x.c.job}｜査定：${x.c.satei}</div></div>`).join(""):'<div class="note">該当なし</div>'}
+   <div class="q"><b>提出単価案と根拠</b><span style="font:800 18px var(--f-num)">${yen(p.proposal)}</span> ${stChip(p)}<br>${p.basis}${p.note?`<br><span style="color:var(--warn);font-weight:700">${p.note}</span>`:""}
+   ${p.origin&&p.origin.kind!=="人"?`<br><span class="note">元の値 ${yen(p.origin.value)}円は資料の値をそのまま使用（書き換えなし）</span>`:""}</div>`;
+}
+function v3(){
+  const P=priced(), left=P.filter(p=>needs(p)&&p.state!=="対象外"&&!S.checks[p.id]);
+  const ready=!left.length;
+  const csv=["工種,名称,規格・備考,数量,単位,提出単価,金額,根拠",...P.filter(p=>p.proposal!=null).map(p=>[p.kos,`"${p.line.name}"`,"",p.line.qty,p.line.unit,p.proposal,p.proposal*p.line.qty,`"${p.basis}"`].join(","))].join("\n");
+  return `<section class="panel"><div class="ph"><h2>④ 建築の見積ソフトへの取込データ</h2><p>人の確認が終わった行だけを、取込形式（CSV）で出力します</p></div>
+   ${ready?`<div class="callout k" style="margin-bottom:10px">確認がすべて終わりました。下のデータを建築の見積ソフトへ取り込みます（列の並びは御社のソフトの取込形式に合わせます）。</div>
+     <div style="display:flex;gap:8px;margin-bottom:8px"><button class="btn" id="copy">CSVをコピー</button><span class="note" id="copied" aria-live="polite"></span></div><pre class="csv" id="csv">${csv.replace(/</g,"&lt;")}</pre>`
+   :`<div class="callout">まだ出力できません。人の確認が必要な行が <b>${left.length}行</b> あります。</div>
+     <ul>${left.map(p=>`<li>${p.line.name}：${p.state}${p.state==="未算出"?"（単価の入力と確認）":"（確認のチェック）"}</li>`).join("")}</ul>
+     <button class="btn ghost" data-goto="2">③ 値入れへ戻る</button>`}</section>`;
+}
+function evaluate(mode){
+  const qs=[];for(const q of Object.values(QUOTES)) for(const l of q.lines) if(l.key in GOLD) qs.push({q:q.name,l});
+  for(const l of ELEC.lines) qs.push({q:"電気",l});
+  return qs.map(({q,l})=>{const gold=GOLD[l.key];const r=search(l.name,mode,BUKKA).filter(x=>!x.excluded&&x.score>=TH);
+    const top3=r.slice(0,3).map(x=>x.c.id), top1=r[0]?.c.id||null;
+    return {q,l,gold,top1,ok1:gold?top1===gold:top1===null,ok3:gold?top3.includes(gold):top1===null};});
+}
+function v4(){
+  const H=evaluate("hybrid"),M=evaluate("meaning");
+  const rate=(a,f)=>Math.round(a.filter(f).length/a.length*100);
+  const hasG=a=>a.filter(x=>x.gold), noG=a=>a.filter(x=>!x.gold);
+  const cur=S.evalMode==="hybrid"?H:M;
+  const P=priced(), withV=P.filter(p=>p.proposal!=null&&p.origin&&p.origin.kind!=="人");
+  const exact=withV.filter(p=>{const src=p.origin.kind==="物価資料"?BUKKA.find(b=>b.id===p.origin.id).price:PAST.find(b=>b.id===p.origin.id).price;return src===p.origin.value}).length;
+  const based=P.filter(p=>p.proposal!=null).filter(p=>p.basis).length, val=P.filter(p=>p.proposal!=null).length;
+  return `<section class="panel"><div class="ph"><h2>⑤ 答え合わせ（RAGの性能）</h2><p>3社＋電気の見積の${H.length}行を、あらかじめ決めた正解の物価資料と突き合わせます</p></div>
+   <div class="metric">
+    <div class="mc r"><span class="note">指標1 検索の当たり（上位3件・正解のある行）</span><b>${rate(hasG(H),x=>x.ok3)}%</b><span class="vs">上位1件では ${rate(hasG(H),x=>x.ok1)}%。数値を区別しにくい検索は上位1件 ${rate(hasG(M),x=>x.ok1)}%（厚さ違いのパネルを1位に取り違え）</span></div>
+    <div class="mc"><span class="note">「該当なし」を正しく判定（正解の無い行）</span><b>${rate(noG(H),x=>x.ok1)}%</b><span class="vs">物価資料に無い品目に、似た別の品目を当てない</span></div>
+    <div class="mc"><span class="note">指標2 数値の正確さ（元の値＝資料の値）</span><b>${withV.length?Math.round(exact/withV.length*100):0}%</b><span class="vs">${exact}／${withV.length}行。AIは単価を作らず資料の値を計算に渡す</span></div>
+    <div class="mc"><span class="note">指標3 根拠の提示（提出単価案のある行）</span><b>${val?Math.round(based/val*100):0}%</b><span class="vs">根拠の無い行は未算出として金額を置かない</span></div>
+   </div>
+   <div class="ph" style="margin:16px 0 8px"><h2>1行ずつの結果</h2><div class="mode"><button aria-pressed="${S.evalMode==="hybrid"}" data-mode="hybrid">言葉＋規格の条件</button><button aria-pressed="${S.evalMode==="meaning"}" data-mode="meaning">数値を区別しにくい検索（再現）</button></div></div>
+   <div class="tw"><table><tr><th>見積書</th><th>名称・規格（見積書の表記）</th><th>正解</th><th>検索の1位</th><th>結果</th></tr>
+   ${cur.map(x=>`<tr><td class="s">${x.q}</td><td>${x.l.name}</td><td class="s">${x.gold?x.gold+" "+BUKKA.find(b=>b.id===x.gold).name:"該当なし"}</td>
+    <td class="s">${x.top1?x.top1+" "+BUKKA.find(b=>b.id===x.top1).name:"該当なし"}</td><td>${x.ok1?'<span class="chip c-ok">一致</span>':'<span class="chip c-red">不一致</span>'}</td></tr>`).join("")}</table></div>
+   <p class="note" style="margin:10px 0 0">架空のデータでの値です。御社の見積書・物価資料・過去の提出見積での値は、無償デモの答え合わせで測ります。「数値を区別しにくい検索」は、厚さ・溝幅などの数字を見ない検索を再現したものです。</p></section>`;
+}
+
+function v5(){
+  const esc=t=>String(t).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+  const line={key:"try",koshu:S.tryKoshu,name:S.tryName,qty:1,unit:"",price:S.tryPrice>0?S.tryPrice:null};
+  const p=priceLine(line,S.rate,S.cap/100), qa=attrs(S.tryName);
+  if(line.price==null){p.state="未算出";p.basis="業者見積の単価が未入力です";}
+  const all=search(S.tryName,"hybrid",BUKKA), top=p.hit?p.hit.c.id:null;
+  const ok=all.filter(x=>!x.excluded).slice(0,3), ng=all.filter(x=>x.excluded).sort((a,b)=>b.score-a.score).slice(0,3);
+  const mean=search(S.tryName,"meaning",BUKKA)[0];
+  const pr=search(S.tryName,"hybrid",PAST).filter(x=>x.score>=TH&&!x.excluded).slice(0,2);
+  return `<div class="split"><div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+   <section class="panel"><div class="ph"><h2>⑥ 自由に試す</h2><p>見積書の1行を入力すると、物価資料（架空・${BUKKA.length}件）の検索と値入れの計算をその場で行います</p></div>
+   <div class="rules" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+    <label style="grid-column:1/-1">名称・規格（見積書の表記のまま）<input type="text" id="t-name" value="${esc(S.tryName)}" style="font-family:var(--f-body)"></label>
+    <label>工種<select id="t-koshu" style="font:700 14px var(--f-body);padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)">${Object.keys(RATE0).map(k=>`<option ${k===S.tryKoshu?"selected":""}>${k}</option>`).join("")}</select></label>
+    <label>業者見積の単価（円）<input type="number" id="t-price" min="0" step="10" value="${S.tryPrice||""}"></label></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn" id="t-run">検索して計算</button></div>
+   <p class="note" style="margin:10px 0 4px;font-weight:700">入力の例（押すと入ります）</p>
+   <div style="display:flex;gap:6px;flex-wrap:wrap">${EX.map((e,i)=>`<button class="btn ghost" data-ex="${i}" style="padding:6px 10px;font-size:12px">${esc(e[0])}</button>`).join("")}</div>
+   <p class="note" style="margin:10px 0 0">上乗せ率 ${S.rate[S.tryKoshu]}%・上限 物価資料の${S.cap}%（③ 値入れの画面の設定を使います）</p></section>
+   <section class="panel"><div class="ph"><h2>物価資料の一覧（架空）</h2><p>検索の対象です。${SRC}</p></div>
+   <div class="tw"><table><tr><th>番号</th><th>名称・規格</th><th class="n">単価</th><th class="n">掲載ページ</th></tr>${BUKKA.map(c=>`<tr class="${c.id===top?"sel":""}"><td class="s">${c.id}</td><td>${c.name}</td><td class="n">${yen(c.price)}</td><td class="n">p.${c.page}</td></tr>`).join("")}</table></div></section></div>
+   <aside class="panel drawer"><div class="ph" style="margin:0"><h2>検索の中身</h2><span class="chip c-ai">RAG</span></div>
+    <div class="q"><b>入力した行（検索の元）</b>${esc(S.tryName)||"（未入力）"}<br><span class="note">読み取った規格：${Object.entries(qa).map(([k,v])=>k+"="+v).join("／")||"なし"}</span></div>
+    <div class="note" style="font-weight:700">物価資料の候補（上位3件）</div>${ok.map(x=>candHtml(x,x.c.id===top)).join("")}
+    ${top?"":'<div class="note">言葉の一致が基準（'+Math.round(TH*100)+'%）に届かないため、物価資料からは採用しません</div>'}
+    ${ng.length?'<div class="note" style="font-weight:700">規格が合わずに外した候補</div>'+ng.map(x=>candHtml(x,false)).join(""):""}
+    <div class="note" style="font-weight:700">過去の提出・査定</div>${pr.length?pr.map(x=>`<div class="cand"><div class="t"><span>${x.c.name}</span><span class="n">${yen(x.c.price)}</span></div><div class="m">${x.c.job}｜査定：${x.c.satei}</div></div>`).join(""):'<div class="note">該当なし</div>'}
+    <div class="q"><b>提出単価案と根拠</b><span style="font:800 18px var(--f-num)">${yen(p.proposal)}</span> ${stChip(p)}<br>${p.basis}${p.note?`<br><span style="color:var(--warn);font-weight:700">${p.note}</span>`:""}</div>
+    <div class="q"><b>比較：数値を区別しにくい検索の1位</b>${mean?mean.c.id+"　"+mean.c.name:"—"}${mean&&top&&mean.c.id!==top?'<br><span style="color:var(--warn);font-weight:700">規格を条件にした検索と結果が違います</span>':""}</div>
+   </aside></div>`;
+}
+function render(){
+  nav(); const V=[v0,v1,v2,v3,v4,v5][S.step]; document.getElementById("view").innerHTML=V();
+  const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+  $$("input[name=pick]").forEach(i=>i.onchange=()=>{S.pick=i.value;S.sel=null});
+  $("#go2")&&($("#go2").onclick=()=>{S.step=2;render()});
+  $$("[data-row]").forEach(tr=>tr.onclick=e=>{if(e.target.closest("input,label"))return;S.sel=tr.dataset.row;render()});
+  $$("[data-ck]").forEach(c=>c.onchange=()=>{S.checks[c.dataset.ck]=c.checked;render()});
+  $$("[data-man]").forEach(i=>i.onchange=()=>{const v=parseInt(i.value.replace(/[^0-9]/g,""),10);if(v>0){S.manual[i.dataset.man]=v;}else delete S.manual[i.dataset.man];S.checks[i.dataset.man]=false;render()});
+  $$("[data-rate]").forEach(i=>i.onchange=()=>{const v=+i.value;if(v>=0&&v<=50){S.rate[i.dataset.rate]=v}render()});
+  $("[data-cap]")&&($("[data-cap]").onchange=e=>{const v=+e.target.value;if(v>=80&&v<=120)S.cap=v;render()});
+
+  if($("#t-run")){
+    const run=()=>{S.tryName=$("#t-name").value.trim();S.tryKoshu=$("#t-koshu").value;S.tryPrice=parseInt($("#t-price").value,10)||0;render()};
+    $("#t-run").onclick=run; $("#t-name").onkeydown=e=>{if(e.key==="Enter"&&!e.isComposing)run()}; $("#t-price").onkeydown=e=>{if(e.key==="Enter")run()}; $("#t-koshu").onchange=run;
+    $$("[data-ex]").forEach(b=>b.onclick=()=>{const e=EX[+b.dataset.ex];S.tryName=e[0];S.tryKoshu=e[1];S.tryPrice=e[2];render()});}
+  $$("[data-goto]").forEach(b=>b.onclick=()=>{S.step=+b.dataset.goto;render()});
+  $$("[data-mode]").forEach(b=>b.onclick=()=>{S.evalMode=b.dataset.mode;render()});
+  $("#copy")&&($("#copy").onclick=()=>{const t=$("#csv").textContent;const done=m=>{$("#copied").textContent=m};
+    try{navigator.clipboard.writeText(t).then(()=>done("コピーしました"),()=>{selectCsv();done("選択しました。⌘C でコピーしてください")})}catch(e){selectCsv();done("選択しました。⌘C でコピーしてください")}});
+}
+function selectCsv(){const r=document.createRange();r.selectNodeContents(document.getElementById("csv"));const s=getSelection();s.removeAllRanges();s.addRange(r);}
+if(typeof window!=="undefined"&&document.getElementById("view")) render();
+</script>
+</body>
+</html>
